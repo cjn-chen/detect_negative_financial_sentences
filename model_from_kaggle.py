@@ -12,8 +12,9 @@ from keras.models import Model
 from keras import optimizers
 from keras import backend as K  #调用后端引擎，K相当于使用tensorflow（后端是tf的话）
 import pandas as pd
-from word_model2embeding_matrix import make_deepLearn_data
+from word_model2embeding_matrix import make_deepLearn_data, split_word
 import pickle
+from sklearn.model_selection import train_test_split
 
 def f1(y_true, y_pred):
     ''' 由于新版的Keras没有f1可以直接调用，需要自行实现f1的计算，这里使用了backend，
@@ -79,38 +80,43 @@ def build_model(embedding_matrix, learning_rate, nb_words,
     return model
 
 
-def split_word(txt):
-    if isinstance(txt, str):
-        result = txt[:-1].split(' ')
-    else:
-        result = []
-    return result
-
 if __name__ == '__main__':
+    print('Loading data...')
+    ## loda data from file
     with open('word2idx_embedMatrix.pkl', 'rb') as f:
         word2idx, embedMatrix = pickle.load(f)
-    data_train = pd.read_pickle('Train_Data_sen_vec_Tencent.pkl')
-    print('Loading data...')
-    x_txt = data_train.txt_split.apply(split_word)
+    with open('train_data.pkl', 'rb') as f:
+        train_data = pickle.load(f)
+    ## load data 
+    y = train_data['y_train']
+    X_train_txt, X_train_txt_max_len = train_data['X_train_txt'],train_data['X_train_txt_max_len']
+    X_train_title, X_train_title_max_len = train_data['X_train_title'],train_data['X_train_title_max_len']
     
-    y = data_train.negative.values
-    X, max_len = make_deepLearn_data(x_txt, word2idx)
-    
-    X_train = X[:-250]
-    y_train = y[:-250]
-    
-    y_test = y[-250:]
-    X_test = X[-250:]
-    
+    ## split data txt
+    X_train, X_test, y_train, y_test = train_test_split(X_train_txt, y,
+                                                        test_size = 0.1,
+                                                        random_state = 0)
     nb_words = len(word2idx.keys()) + 1
     learning_rate = 0.01
+    max_len = X_train.shape[1]
     model = build_model(embedMatrix, learning_rate, nb_words,
                         max_length = max_len,
                         embedding_size = embedMatrix.shape[1])
-    
     
     model.fit(X_train, y_train,
               batch_size=32,
               epochs=5,
               validation_data=[X_test, y_test])
     
+    ## split data title
+    X_train, X_test, y_train, y_test = train_test_split(X_train_title, y,
+                                                        test_size = 0.1,
+                                                        random_state = 0)
+    max_len = X_train.shape[1]
+    model = build_model(embedMatrix, learning_rate, nb_words,
+                        max_length = max_len,
+                        embedding_size = embedMatrix.shape[1])
+    model.fit(X_train, y_train,
+              batch_size=32,
+              epochs=20,
+              validation_data=[X_test, y_test])

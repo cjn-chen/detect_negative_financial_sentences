@@ -9,6 +9,7 @@ from keras.preprocessing import sequence
 import numpy as np
 from gensim.models import KeyedVectors
 import pickle
+import pandas as pd
 
 def build_word2idx_embedMatrix(model):
     ''' 输入gensim训练的词向量模型，输出{'词语'：下标}字典和嵌入矩阵
@@ -72,7 +73,15 @@ def make_deepLearn_data(sentenList, word2idx):
     X_train_idx = np.array(sequence.pad_sequences(X_train_idx, maxlen, padding='post'))  # 必须是np.array()类型
     return X_train_idx, maxlen
 
+def split_word(txt):
+    if isinstance(txt, str):
+        result = txt[:-1].split(' ')
+    else:
+        result = []
+    return result
+
 if __name__ == '__main__':
+#%% 1.生成嵌入矩阵,单词的字典
     model = KeyedVectors.load_word2vec_format('train_vec_byTencent_word.bin', binary=True)
     
     f = open('all_word_seg.txt','r', encoding = 'UTF-8')
@@ -101,8 +110,39 @@ if __name__ == '__main__':
     entities_all = entities_all.union(entities)
     print(len(entities_all))
     
-    
     word2idx, embedMatrix = build_word2idx_embedMatrix_2(model, entities_all)
-    
     with open('word2idx_embedMatrix.pkl', 'wb') as f:
         pickle.dump([word2idx, embedMatrix], f)
+    
+#%% 2.生成训练集和测试集
+    ## train set
+    data_train = pd.read_pickle('Train_Data.pkl')
+    x_train_txt0 = data_train.txt_split.apply(split_word)
+    y_train = data_train.negative.values
+    X_train_txt, X_train_txt_max_len = make_deepLearn_data(x_train_txt0, word2idx)
+    
+    x_train_title0 = data_train.title.apply(split_word)
+    X_train_title, X_train_title_max_len = make_deepLearn_data(x_train_title0, word2idx)
+
+    train_data = dict(zip(['X_train_txt','X_train_txt_max_len',
+                           'X_train_title','X_train_title_max_len', 'y_train'], 
+                          [X_train_txt, X_train_txt_max_len,
+                           X_train_title, X_train_title_max_len, y_train]))
+    with open('train_data.pkl', 'wb') as f:
+        pickle.dump(train_data, f)
+    ## test set
+    data_test = pd.read_pickle('Test_Data.pkl')
+    x_test_txt0 = data_test.txt_split.apply(split_word)
+    X_test_txt, X_test_txt_max_len = make_deepLearn_data(x_test_txt0, word2idx)
+    
+    x_test_title0 = data_test.title.apply(split_word)
+    X_test_title, X_test_title_max_len = make_deepLearn_data(x_test_title0, word2idx)
+    
+    test_data = dict(zip(['X_test_txt','X_test_txt_max_len',
+                           'X_test_title','X_test_title_max_len',], 
+                          [X_test_txt, X_test_txt_max_len,
+                           X_test_title, X_test_title_max_len,]))
+    with open('test_data.pkl', 'wb') as f:
+        pickle.dump(test_data, f)
+
+
