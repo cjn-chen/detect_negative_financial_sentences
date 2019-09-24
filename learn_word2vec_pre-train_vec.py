@@ -48,4 +48,4 @@ model1 = KeyedVectors.load_word2vec_format("Tencent_AILab_ChineseEmbedding.txt",
 wv_from_text.build_vocab([list(model1.wv.vocab.keys())], update=True)
 wv_from_text.intersect_word2vec_format("Tencent_AILab_ChineseEmbedding.txt", binary=False, lockf=1.0)
 wv_from_text.train(sentences, total_examples=total_examples, epochs=wv_from_text.epochs)
-
+wv_from_text.wv.save_word2vec_format('train_vec_byTencent_word.bin', binary=True)

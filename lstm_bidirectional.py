@@ -12,36 +12,38 @@ import pandas as pd
 from keras.preprocessing import sequence
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Embedding, LSTM, Bidirectional
+import pickle
 #from keras.datasets import imdb
 #from keras.optimizers import Adam
+from word_model2embeding_matrix import make_deepLearn_data
 
-max_features = 40000
-# cut texts after this number of words
-# (among top max_features most common words)
-maxlen = 200
-batch_size = 32
+def split_word(txt):
+    if isinstance(txt, str):
+        result = txt[:-1].split(' ')
+    else:
+        result = []
+    return result
 
+with open('word2idx_embedMatrix.pkl', 'rb') as f:
+    word2idx, embedMatrix = pickle.load(f)
 data_train = pd.read_pickle('Train_Data_sen_vec_Tencent.pkl')
-
 print('Loading data...')
-x_train = data_train.txt_sentence_vec.values[:-250]
-y_train = data_train.negative.values[:-250]
+x_txt = data_train.txt_split.apply(split_word)
 
-x_test = data_train.txt_sentence_vec.values[-250:]
-y_test = data_train.negative.values[-250:]
+y = data_train.negative.values
+X, max_len = make_deepLearn_data(x_txt, word2idx)
 
-print(len(x_train), 'train sequences')
-print(len(x_test), 'test sequences')
+X_train = X[:-250]
+y_train = y[:-250]
 
-print('Pad sequences (samples x time)')
-x_train = sequence.pad_sequences(x_train, maxlen=maxlen)
-x_test = sequence.pad_sequences(x_test, maxlen=maxlen)
-print('x_train shape:', x_train.shape)
-print('x_test shape:', x_test.shape)
-
+y_test = y[-250:]
+X_test = X[-250:]
+nb_words = len(word2idx.keys()) + 1
+learning_rate = 0.01
 
 model = Sequential()
-model.add(Embedding(max_features, 300, input_length=maxlen,mask_zero=True))
+model.add(Embedding(nb_words, embedMatrix.shape[1], weights=[embedMatrix],
+                    input_length=max_len,mask_zero=True, trainable=False))
 model.add(Bidirectional(LSTM(64,return_sequences=True,)))
 model.add(Bidirectional(LSTM(64)))
 model.add(Dropout(0.5))
@@ -51,13 +53,13 @@ model.add(Dense(1, activation='sigmoid'))
 model.compile('adam', 'binary_crossentropy', metrics=['accuracy'])
 
 print('Train...')
-model.fit(x_train, y_train,
-          batch_size=batch_size,
-          epochs=100,
-          validation_data=[x_test, y_test])
+model.fit(X_train, y_train,
+          batch_size=32,
+          epochs=10,
+          validation_data=[X_test, y_test])
 
 #model.save('my_model.h5')
 
 #cost = model.train_on_batch(X_batch, Y_batch)
 
-model.evaluate(x_test, y_test, batch_size=y_test.shape[0], verbose=False)
+model.evaluate(X_test, y_test, batch_size=y_test.shape[0], verbose=False)
