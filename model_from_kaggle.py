@@ -81,13 +81,17 @@ def build_model(embedding_matrix, learning_rate, nb_words,
 
 def build_model_add_title2(embedding_matrix, learning_rate, nb_words,
                           max_length=55, max_length_title=55,
-                          embedding_size=300, metric = f1):
+                          embedding_size=200, metric = f1):
     '''
     根据预训练的嵌入矩阵，返回神经网络的模型，返回模型还需要调用model.fit模块
     Args:
         embedding_matrix:嵌入矩阵,每行为一个单词，每列为其中一个维度
+        learning_rate:学习率的大小
         nb_words:词汇表大小，设置为出现过的词汇数目+1，空的位置留给OOV(out of vocabulary),
-        max_length:
+        max_length:txt中句子的最大长度
+        max_length_title:title中句子的最大长度
+        embedding_size:嵌入矩阵的嵌入维度，即嵌入矩阵embedding_matrix.shape[1]
+        metric:使用的评价方式
     '''
     inp = Input(shape=(max_length,))  # 定义输入 txt
     inp_title = Input(shape=(max_length_title,))  # 定义输入 title
@@ -110,46 +114,6 @@ def build_model_add_title2(embedding_matrix, learning_rate, nb_words,
     conc_title = Concatenate()([max_pool1_title, max_pool2_title])  # 合并两层
     
     conc_all = Concatenate()([conc, conc_title])
-    
-    predictions = Dense(1, activation='sigmoid')(conc_all)
-    model = Model(inputs=[inp, inp_title], outputs=predictions)
-    adam = optimizers.Adam(lr=learning_rate)
-    model.compile(optimizer=adam, loss='binary_crossentropy', metrics=[f1])
-    return model
-
-def build_model_add_title(embedding_matrix, learning_rate, nb_words,
-                          max_length=55, max_length_title=55,
-                          embedding_size=300, metric = f1):
-    '''
-    根据预训练的嵌入矩阵，返回神经网络的模型，返回模型还需要调用model.fit模块
-    Args:
-        embedding_matrix:嵌入矩阵,每行为一个单词，每列为其中一个维度
-        nb_words:词汇表大小，设置为出现过的词汇数目+1，空的位置留给OOV(out of vocabulary),
-        max_length:
-    '''
-    inp = Input(shape=(max_length,))  # 定义输入 txt
-    inp_title = Input(shape=(max_length_title,))  # 定义输入 title
-    # txt
-    x = Embedding(nb_words, embedding_size, weights=[embedding_matrix], trainable=False)(inp)# 嵌入层
-    x = SpatialDropout1D(0.3)(x)  # 对某一个维度进行dropout,embedding中的某一列
-    x1 = Bidirectional(CuDNNLSTM(256, return_sequences=True))(x)  # 使用GPU加速的LSTM
-    x2 = Bidirectional(CuDNNGRU(128, return_sequences=True))(x1)  # 使用GPU加速的GRU
-    max_pool1 = GlobalMaxPooling1D()(x1)  #对于时序数据的全局最大池化，
-    max_pool2 = GlobalMaxPooling1D()(x2)  #对于时序数据的全局最大池化。
-    conc = Concatenate()([max_pool1, max_pool2])  # 合并两层
-    predictions_txt = Dense(100, activation='tanh')(conc)
-    
-    # title
-    x_title = Embedding(nb_words, embedding_size, weights=[embedding_matrix], trainable=False)(inp_title)# 嵌入层
-    x_title = SpatialDropout1D(0.3)(x_title)  # 对某一个维度进行dropout,embedding中的某一列
-    x1_title = Bidirectional(CuDNNLSTM(256, return_sequences=True))(x_title)  # 使用GPU加速的LSTM
-    x2_title = Bidirectional(CuDNNGRU(128, return_sequences=True))(x1_title)  # 使用GPU加速的GRU
-    max_pool1_title = GlobalMaxPooling1D()(x1_title)  #对于时序数据的全局最大池化，
-    max_pool2_title = GlobalMaxPooling1D()(x2_title)  #对于时序数据的全局最大池化。
-    conc_title = Concatenate()([max_pool1_title, max_pool2_title])  # 合并两层
-    predictions_title = Dense(20, activation='tanh')(conc_title)
-    
-    conc_all = Concatenate()([predictions_txt, predictions_title])
     
     predictions = Dense(1, activation='sigmoid')(conc_all)
     model = Model(inputs=[inp, inp_title], outputs=predictions)
