@@ -75,16 +75,14 @@ https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/data
 <img src="./picture/总流程.jpg" alt="总流程" style="zoom:90%;" />
 
 <center>总流程</center>
-
 <img src="./picture/step1流程图_识别负面信息.jpg" alt="step1流程图_识别负面信息.jpg" style="zoom:70%;" />
 
 <center>Step 1 识别负面信息</center>
-
 ## 2.2 数据预处理
 
 **执行文件**：[data_preprocess.py](https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/data_preprocess.py)
 
-###　2.2.1 预处理步骤
+### 2.2.1 预处理步骤
 
 1. 处理训练集和测试集中异常符号，比如"?","<"等； [查看代码](https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/data_preprocess.py#L18-L40)
 2. 提取训练集中所有entity，生成文件'**financial_entity.txt**'和'**financial_entity_test.txt**'，供jieba模块加载作为自定义字典；[查看代码](https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/data_preprocess.py#L123-L129)
@@ -93,7 +91,7 @@ https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/data
 5. 同理，也对测试集进行一样的处理，生成“**Test_Data.pkl**”文件。
 6. 生成“**all_word_seg.txt**”文件，将所有分割的结果，包括训练集和测试集的title_split，txt_split字段合并，每行为一个句子，空格分割。用于生成词语到index的token词典，类似keras的Tokenizer。[查看代码](https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/data_preprocess.py#L199-L205)
 
-###　2.2.2 生成文件及示例
+### 2.2.2 生成文件及示例
 
 - **financial_entity.txt和financial_entity_test.txt示例**
 
