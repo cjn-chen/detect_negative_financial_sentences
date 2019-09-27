@@ -71,9 +71,11 @@ https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/data
 ## 2.1 流程图
 总流程图为计划使用的处理方式，考虑到实体名词与是否为负面信息不应该由直接关系，可以先判断是否为负面信息（**step1**），再判断实体中哪部分是负面实体(**step2**)。
 
-<img src="I:\MyDownloads\competition\picture\总流程.jpg" alt="总流程" style="zoom:90%;" />
+<img src="./picture/总流程.jpg" alt="总流程" style="zoom:90%;" />
+
 <center>总流程</center>
-<img src="I:\MyDownloads\competition\picture\step1流程图_识别负面信息.jpg" alt="step1流程图_识别负面信息.jpg" style="zoom:70%;" />
+<img src="./picture/step1流程图_识别负面信息.jpg" alt="step1流程图_识别负面信息.jpg" style="zoom:70%;" />
+
 <center>Step 1 识别负面信息</center>
 ## 2.2 数据预处理
 
@@ -200,6 +202,8 @@ model = KeyedVectors.load_word2vec_format('train_vec_byTencent_word.bin', binary
 
 ### 2.4.3 输出文件说明
 
+<font color="red">考虑到文件大小限制</font>，大小大于50M的文件都经过压缩。
+
 - **word2idx_embedMatrix.pkl**
 
 由Token词典与嵌入矩阵构成的list。调用方式，嵌入矩阵和Token字典形式如下：
@@ -291,7 +295,7 @@ Token
 
 input_1和input_2分别为title和txt。
 
-![模型结构图v1.0](I:\MyDownloads\competition\picture\网络结构图v1.0.png)
+![模型结构图v1.0](./picture/网络结构图v1.0.png)
 
 #### 核心代码
 
