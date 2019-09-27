@@ -72,11 +72,9 @@ https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/data
 
 总流程图为计划使用的处理方式，考虑到实体名词与是否为负面信息不应该由直接关系，可以先判断是否为负面信息（**step1**），再判断实体中哪部分是负面实体(**step2**)。
 
-<img src="./picture/总流程.jpg" alt="总流程" style="zoom:90%;" />
-
+<center><img src="./picture/总流程.jpg" alt="总流程" style="zoom:90%;" /></center>
 <center>总流程</center>
-<img src="./picture/step1流程图_识别负面信息.jpg" alt="step1流程图_识别负面信息.jpg" style="zoom:70%;" />
-
+<center><img src="./picture/step1流程图_识别负面信息.jpg" alt="step1流程图_识别负面信息.jpg" style="zoom:70%;" /></center>
 <center>Step 1 识别负面信息</center>
 ## 2.2 数据预处理
 
