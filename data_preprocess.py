@@ -103,6 +103,30 @@ def seperate_txt(text):
     else:
         return text
     
+def write_seg_txt(txt):
+    if isinstance(txt, str):
+        return txt
+    else:
+        return ''
+
+def write_column_seg_in(df, column, output_file_path):
+    ''' 将df中的某一列输出到文件中
+    '''
+    file = open(output_file_path, 'w', encoding = 'UTF-8')
+    for title_item in data_train[column]:
+        tmp_txt = write_seg_txt(title_item)
+        if len(tmp_txt) > 0 and isinstance(tmp_txt, str):
+            file.write(tmp_txt)
+
+def write_column_seg_in_add(df, column, output_file_path):
+    ''' 将df中的某一列输出到文件中
+    '''
+    file = open(output_file_path, 'w+', encoding = 'UTF-8')
+    for title_item in data_train[column]:
+        tmp_txt = write_seg_txt(title_item)
+        if len(tmp_txt) > 0 and isinstance(tmp_txt, str):
+            file.write(tmp_txt)
+    
 if __name__ == '__main__':
     #%%1.数据清洗
     train_file_path = './data/Train_Data.csv'
@@ -171,3 +195,11 @@ if __name__ == '__main__':
     data_test['title_split'] = data_test['title'].apply(seperate_txt)
     data_test['txt_split'] = data_test['text'].apply(seperate_txt)
     data_test.to_pickle('./Test_Data.pkl')
+    
+    #%%7.输出分割的句子
+#    data_train = pd.read_pickle('./Train_Data.pkl')
+#    data_test = pd.read_pickle('./Test_Data.pkl')
+    write_column_seg_in(data_train, 'title_split', './all_word_seg.txt')
+    write_column_seg_in_add(data_train, 'txt_split', './all_word_seg.txt')
+    write_column_seg_in_add(data_test, 'title_split', './all_word_seg.txt')
+    write_column_seg_in_add(data_test, 'txt_split', './all_word_seg.txt')
