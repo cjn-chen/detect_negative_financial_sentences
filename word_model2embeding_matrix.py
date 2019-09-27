@@ -128,7 +128,7 @@ if __name__ == '__main__':
                            'X_train_title','X_train_title_max_len', 'y_train'], 
                           [X_train_txt, X_train_txt_max_len,
                            X_train_title, X_train_title_max_len, y_train]))
-    with open('train_data.pkl', 'wb') as f:
+    with open('train_data_model.pkl', 'wb') as f:
         pickle.dump(train_data, f)
     ## test set
     data_test = pd.read_pickle('Test_Data.pkl')
@@ -142,7 +142,6 @@ if __name__ == '__main__':
                            'X_test_title','X_test_title_max_len',], 
                           [X_test_txt, X_test_txt_max_len,
                            X_test_title, X_test_title_max_len,]))
-    with open('test_data.pkl', 'wb') as f:
+    with open('test_data_model.pkl', 'wb') as f:
         pickle.dump(test_data, f)
-
 

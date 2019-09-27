@@ -68,7 +68,9 @@ def word2vec_with_pre_train(pre_trained_word2vec_bin_file, output_word2vec):
 
 
 if __name__ == '__main__':
+    # 腾讯词向量模型文件名称为：
     pre_trained_word2vec_bin_file = "Tencent_AILab_ChineseEmbedding.txt"
+    # fine tune后的词向量模型为：
     output_word2vec = 'train_vec_byTencent_word.bin'
     word2vec_with_pre_train(pre_trained_word2vec_bin_file, output_word2vec)
     
