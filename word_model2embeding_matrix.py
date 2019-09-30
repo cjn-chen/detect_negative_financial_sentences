@@ -121,7 +121,7 @@ if __name__ == '__main__':
     y_train = data_train.negative.values
     X_train_txt, X_train_txt_max_len = make_deepLearn_data(x_train_txt0, word2idx)
     
-    x_train_title0 = data_train.title.apply(split_word)
+    x_train_title0 = data_train.title_split.apply(split_word)
     X_train_title, X_train_title_max_len = make_deepLearn_data(x_train_title0, word2idx)
 
     train_data = dict(zip(['X_train_txt','X_train_txt_max_len',
@@ -135,7 +135,7 @@ if __name__ == '__main__':
     x_test_txt0 = data_test.txt_split.apply(split_word)
     X_test_txt, X_test_txt_max_len = make_deepLearn_data(x_test_txt0, word2idx)
     
-    x_test_title0 = data_test.title.apply(split_word)
+    x_test_title0 = data_test.title_split.apply(split_word)
     X_test_title, X_test_title_max_len = make_deepLearn_data(x_test_title0, word2idx)
     
     test_data = dict(zip(['X_test_txt','X_test_txt_max_len',
