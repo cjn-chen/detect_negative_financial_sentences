@@ -74,7 +74,7 @@ https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/data
 
 <center><img src="./picture/总流程.jpg" alt="总流程" style="zoom:90%;" /></center>
 <center>总流程</center>
-<center><img src="./picture/step1流程图_识别负面信息.jpg" alt="step1流程图_识别负面信息.jpg" style="zoom:70%;" /></center>
+<center><img src="./picture/step1.jpg" alt="step1流程图_识别负面信息.jpg" style="zoom:70%;" /></center>
 <center>Step 1 识别负面信息</center>
 
 ## 2.2 数据预处理
