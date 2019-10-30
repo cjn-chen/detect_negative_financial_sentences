@@ -5,11 +5,12 @@ Created on Sun Sep 22 13:33:52 2019
 Embedding(nb_words, embedding_size, weights=[embedding_matrix], trainable=False)(inp)
 @author: cjn
 """
-from keras.preprocessing import sequence
+from keras.preprocessing.sequence import pad_sequences
 import numpy as np
 from gensim.models import KeyedVectors
 import pickle
 import pandas as pd
+from data_preprocess import fetch_entites
 
 def build_word2idx_embedMatrix(model):
     ''' 输入gensim训练的词向量模型，输出{'词语'：下标}字典和嵌入矩阵
@@ -41,7 +42,7 @@ def build_word2idx_embedMatrix_2(model, entities_all):
         word2idx:名词到index的映射的字典，比如 {'国外': 991,'网': 992, '贷网': 993,  ...}
         embedMatrix:每一行为一个单词，每一列为一个维度
     '''
-    word_set = set(model.wv.vocab.keys())
+    word_set = set(model.vocab.keys())
     word_interset = word_set.intersection(entities_all)
     # 存储word2vec中所有向量的数组，留意其中多一位，词向量全为0，用于padding
     embedMatrix = np.zeros((len(word_interset) + 1, model.vector_size))
@@ -50,7 +51,7 @@ def build_word2idx_embedMatrix_2(model, entities_all):
     ## 把index为0的留给padding
     word2idx = dict(zip(word_interset, range(1, len(word_interset)+1)))
     # 构建
-    embedMatrix[1:,:] = model.wv.__getitem__(word2idx.keys())
+    embedMatrix[1:,:] = model.__getitem__(word2idx.keys())
     return word2idx, embedMatrix
 
 def make_deepLearn_data(sentenList, word2idx):
@@ -70,78 +71,206 @@ def make_deepLearn_data(sentenList, word2idx):
             maxlen = len(i)
     
     X_train_idx = [[word2idx.get(w, 0) for w in sen] for sen in sentenList]
-    X_train_idx = np.array(sequence.pad_sequences(X_train_idx, maxlen, padding='post'))  # 必须是np.array()类型
+    X_train_idx = np.array(pad_sequences(X_train_idx, maxlen, padding='post'))  # 必须是np.array()类型
     return X_train_idx, maxlen
 
-def split_word(txt):
+def make_deepLearn_data_entity(w):
+    X_train_idx = word2idx.get(w, 0)
+    return X_train_idx
+
+def split_word(txt, sep=' '):
     if isinstance(txt, str):
-        result = txt[:-1].split(' ')
+        result = txt[:-1].split(sep)
     else:
         result = []
     return result
 
-if __name__ == '__main__':
-#%% 1.生成嵌入矩阵,单词的字典
-    model = KeyedVectors.load_word2vec_format('train_vec_byTencent_word.bin', binary=True)
+def split_word_entity(txt, sep=';'):
+    if isinstance(txt, str):
+        result = txt.split(sep)
+    else:
+        result = []
+    return result
+
+def generate_token(x, word2idx):
+    result = []
+    for item in x:
+        result.append(word2idx.get(item, 0))
+    return result
+
+def get_all_entities():
+   ''' get all entities from sentence and entity field
+   Args:
+       entity_max_len:每个句子最多取几个词
+   '''
+   f = open('all_word_seg.txt','r', encoding = 'UTF-8')
+   sentences = f.readlines()
+   sentences = [item[:-1].split(' ') for item in sentences]
+   f.close()
+   entities_all = set()
+   for sen in sentences:
+       for item in sen:
+           entities_all.add(item)
+#   print(len(entities_all))
+
+   f = open('financial_entity_test.txt','r', encoding = 'UTF-8')
+   entities = f.readlines()
+   entities = [item[:-4].strip() for item in entities]
+   f.close()
+   entities = set(entities)
+   entities_all = entities_all.union(entities)
+#   print(len(entities_all))
+
+   f = open('financial_entity.txt','r', encoding = 'UTF-8')
+   entities = f.readlines()
+   entities = [item[:-4].strip() for item in entities]
+   f.close()
+   entities = set(entities)
+   entities_all = entities_all.union(entities)
+#   print(len(entities_all))
+   return entities_all
+
+def entity_complement(train_file, test_file, output_file, embedMatrix, word2idx0):
+    ''' 补全entity，将嵌入矩阵中未涉及的entity进行添加
+    Args:
+        train_file:训练集文件路径
+        test_file:测试集文件路径
+        output_file:输出文件路径
+        embedMatrix:嵌入矩阵,生成自 build_word2idx_embedMatrix_2
+        word2idx:Token字典，生成自build_word2idx_embedMatrix_2
+    '''
+    word2idx = word2idx0.copy()
+    data_train = pd.read_pickle(train_file)
+    data_test = pd.read_pickle(test_file)
+    # 获取无法识别的entity
+    entities = fetch_entites(data_train, ['entity','key_entity'], ';')
+#    print('length of entity in data train{}'.format(len(entities)))
+    entities = fetch_entites(data_test, ['entity',], ';')
+#    print('length of entity in data train{}'.format(len(entities)))
+    entity_miss_tmp = entities.difference(set(word2idx.keys()))
+    entity_miss = set()
+    for entity in entity_miss_tmp:
+        entity_miss.add(entity.strip())
+    if '' in entity_miss:
+        entity_miss.remove('')
+    # 将无法token的entity加入到embedding matrix中
+    start_index = len(word2idx.values()) + 1
+    new_word2idx = dict(zip(entity_miss, range(start_index, len(entity_miss)+start_index)))
+    # 更新word2idx
+#    print('before update word2idx {}'.format(len(word2idx.values())))
+    word2idx.update(new_word2idx)
+#    print('after update word2idx {}'.format(len(word2idx.values())))
+    # 更新embedding
+    new_embedding = np.zeros((len(new_word2idx.keys()), embedMatrix.shape[1]))
+    embedMatrix = np.row_stack((embedMatrix, new_embedding))
     
-    f = open('all_word_seg.txt','r', encoding = 'UTF-8')
-    sentences = f.readlines()
-    sentences = [item[:-1].split(' ') for item in sentences]
-    f.close()
-    entities_all = set()
-    for sen in sentences:
-        for item in sen:
-            entities_all.add(item)
-    print(len(entities_all))
-    
-    f = open('financial_entity_test.txt','r', encoding = 'UTF-8')
-    entities = f.readlines()
-    entities = [item[:-1].split(' ')[0] for item in entities]
-    f.close()
-    entities = set(entities)
-    entities_all = entities_all.union(entities)
-    print(len(entities_all))
-    
-    f = open('financial_entity.txt','r', encoding = 'UTF-8')
-    entities = f.readlines()
-    entities = [item[:-1].split(' ')[0] for item in entities]
-    f.close()
-    entities = set(entities)
-    entities_all = entities_all.union(entities)
-    print(len(entities_all))
-    
-    word2idx, embedMatrix = build_word2idx_embedMatrix_2(model, entities_all)
-    with open('word2idx_embedMatrix.pkl', 'wb') as f:
+    with open(output_file, 'wb') as f:
         pickle.dump([word2idx, embedMatrix], f)
-    
-#%% 2.生成训练集和测试集
-    ## train set
-    data_train = pd.read_pickle('Train_Data.pkl')
+
+def generate_training_data(data_train_file, output_file, word2idx):
+    ''' 生成tokenize后的数据
+    Args:
+        data_train_file:训练集文件
+            output_file:输出的tokenize后的文件
+    '''
+    data_train = pd.read_pickle(data_train_file)
     x_train_txt0 = data_train.txt_split.apply(split_word)
-    y_train = data_train.negative.values
-    X_train_txt, X_train_txt_max_len = make_deepLearn_data(x_train_txt0, word2idx)
+    X_train_txt, _ = make_deepLearn_data(x_train_txt0, word2idx)
     
     x_train_title0 = data_train.title_split.apply(split_word)
-    X_train_title, X_train_title_max_len = make_deepLearn_data(x_train_title0, word2idx)
+    X_train_title, _ = make_deepLearn_data(x_train_title0, word2idx)
+    
+    x_entity = data_train.entity.apply(split_word_entity).apply(generate_token,args=(word2idx,))
+    
+    y_train = data_train.negative.values
 
-    train_data = dict(zip(['X_train_txt','X_train_txt_max_len',
-                           'X_train_title','X_train_title_max_len', 'y_train'], 
-                          [X_train_txt, X_train_txt_max_len,
-                           X_train_title, X_train_title_max_len, y_train]))
-    with open('train_data_model.pkl', 'wb') as f:
+    train_data = dict(zip(['txt', 'title', 'entity',
+                           'y_train'], 
+                          [X_train_txt, X_train_title, x_entity.values,
+                           y_train]))
+    with open(output_file, 'wb') as f:
         pickle.dump(train_data, f)
-    ## test set
-    data_test = pd.read_pickle('Test_Data.pkl')
+    
+    shape_dic = {'txt_shape':X_train_txt.shape[1], 
+            'title_shape':X_train_title.shape[1],}
+    return shape_dic
+
+def generate_test_data(data_test_file, output_file, shape_dic, word2idx):
+    ''' 生成tokenize后的数据
+    Args:
+        data_test_file:test set文件
+            output_file:输出的tokenize后的文件
+            shape_dic:由generate_training_data生成的txt，title的shape
+    '''
+    data_test = pd.read_pickle(data_test_file)
     x_test_txt0 = data_test.txt_split.apply(split_word)
-    X_test_txt, X_test_txt_max_len = make_deepLearn_data(x_test_txt0, word2idx)
+    X_test_txt, _ = make_deepLearn_data(x_test_txt0, word2idx)
     
     x_test_title0 = data_test.title_split.apply(split_word)
-    X_test_title, X_test_title_max_len = make_deepLearn_data(x_test_title0, word2idx)
+    X_test_title, _ = make_deepLearn_data(x_test_title0, word2idx)
     
-    test_data = dict(zip(['X_test_txt','X_test_txt_max_len',
-                           'X_test_title','X_test_title_max_len',], 
-                          [X_test_txt, X_test_txt_max_len,
-                           X_test_title, X_test_title_max_len,]))
-    with open('test_data_model.pkl', 'wb') as f:
+    
+    x_entity = data_test.entity.apply(split_word_entity).apply(generate_token,args=(word2idx,))
+    
+    # 保证test set的padding长度 和train set一致
+    if shape_dic['txt_shape'] > X_test_txt.shape[1]:
+        X_test_txt = pad_sequences(X_test_txt, shape_dic['txt_shape'], padding='post')
+    else:
+        X_test_txt = X_test_txt[:,:shape_dic['txt_shape']]
+        
+    if shape_dic['title_shape'] > X_test_title.shape[1]:
+        X_test_title = pad_sequences(X_test_title, shape_dic['title_shape'], padding='post')
+    else:
+        X_test_title = X_test_title[:,:shape_dic['title_shape']]
+    
+    ## ouput file
+    test_data = dict(zip(['txt', 'title', 'entity'], 
+                          [X_test_txt, X_test_title, x_entity.values]))
+    with open(output_file, 'wb') as f:
         pickle.dump(test_data, f)
+
+
+if __name__ == '__main__':
+#%% 1.生成嵌入矩阵,单词的字典
+    print('load word2vec model...')
+    model = KeyedVectors.load_word2vec_format('train_vec_byTencent_word.bin', binary=True)
+    
+    print('build embedding matrix...')
+    entities_all = get_all_entities()
+    word2idx, embedMatrix = build_word2idx_embedMatrix_2(model, entities_all)
+
+#%% 2.增加entity的行, 输出嵌入矩阵
+    print('complemnet entity...')
+    train_file = 'Train_Data.pkl'
+    test_file = 'Test_Data.pkl'
+    output_file = 'word2idx_embedMatrix.pkl'
+    entity_complement(train_file, test_file, output_file, embedMatrix, word2idx)
+
+    train_file = 'Train_Data_hastitle.pkl'
+    test_file = 'Test_Data_hastitle.pkl'
+    output_file = 'word2idx_embedMatrix_hastitle.pkl'
+    entity_complement(train_file, test_file, output_file, embedMatrix, word2idx)
+
+#%% 3.生成训练集和测试集
+    ## no title
+    print('produce training set...')
+    data_train_file = 'Train_Data.pkl'
+    output_file = 'train_data_model.pkl'
+    shape_dic = generate_training_data(data_train_file, output_file, word2idx)
+    
+    print('produce test set...')
+    data_test_file = 'Test_Data.pkl'
+    output_file = 'test_data_model.pkl'
+    generate_test_data(data_test_file, output_file, shape_dic, word2idx)
+    
+    ## have title
+    print('produce training set (has tille)...')
+    data_train_file = 'Train_Data_hastitle.pkl'
+    output_file = 'train_data_model_hastitle.pkl'
+    shape_dic = generate_training_data(data_train_file, output_file, word2idx)
+    
+    print('produce test set (has tille)...')
+    data_test_file = 'Test_Data_hastitle.pkl'
+    output_file = 'test_data_model_hastitle.pkl'
+    generate_test_data(data_test_file, output_file, shape_dic, word2idx)
 
