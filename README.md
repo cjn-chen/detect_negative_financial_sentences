@@ -76,19 +76,19 @@ https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/data
 <center>总流程</center>
 <center><img src="./picture/step1.jpg" alt="step1流程图_识别负面信息.jpg" style="zoom:70%;" /></center>
 <center>Step 1 识别负面信息</center>
-
 ## 2.2 数据预处理
 
 **执行文件**：[data_preprocess.py](https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/data_preprocess.py)
 
 ### 2.2.1 预处理步骤
 
-1. 处理训练集和测试集中异常符号，比如"?","<"等； [查看代码](https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/data_preprocess.py#L18-L40)
-2. 提取训练集中所有entity，生成文件'**financial_entity.txt**'和'**financial_entity_test.txt**'，供jieba模块加载作为自定义字典；[查看代码](https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/data_preprocess.py#L123-L129)
-3. 通过训练集分析jieba模块分词结果，通过jieba.suggest_freq(entity, tune=True)进行微调；[查看代码](https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/data_preprocess.py#L132-L154)
-4. 使用jieba，将Train_Data.csv中的title和text字段进行分词，按照空格分隔，生成txt_split和title_split字段，输出“**Train_Data.pkl**”文件；[查看代码](https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/data_preprocess.py#L156-L159)
-5. 同理，也对测试集进行一样的处理，生成“**Test_Data.pkl**”文件。
-6. 生成“**all_word_seg.txt**”文件，将所有分割的结果，包括训练集和测试集的title_split，txt_split字段合并，每行为一个句子，空格分割。用于生成词语到index的token词典，类似keras的Tokenizer。[查看代码](https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/data_preprocess.py#L199-L205)
+1. 处理训练集和测试集中异常符号("?","<")，新闻标志(“[超话]”)； [查看代码]( https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/data_preprocess.py#L22-L50 )
+2. 删除不包括识别实体的停词； [查看代码]( https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/data_preprocess.py#L204-L213 )
+3. 提取训练集中所有entity，生成文件'**financial_entity.txt**'和'**financial_entity_test.txt**'，供jieba模块加载作为自定义字典； [查看代码]( https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/data_preprocess.py#L215-L222 )
+4. 通过训练集分析jieba模块分词结果，通过jieba.suggest_freq(entity, tune=True)进行微调； [查看代码]( https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/data_preprocess.py#L223-L246 )
+5. 使用jieba，将Train_Data.csv中的title和text字段进行分词，按照空格分隔，生成txt_split和title_split字段，按照是否具有title，输出“**Train_Data.pkl**”和“ **Train_Data_hastitle.pkl** ”文件；[查看代码]( https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/data_preprocess.py#L247-L255 )
+6. 同理，也对测试集进行一样的处理，输出“**Test_Data.pkl**”和“ **Test_Data_hastitle.pkl** ”文件。
+7. 生成“**all_word_seg.txt**”文件，将所有分割的结果，包括训练集和测试集的title_split，txt_split字段合并，每行为一个句子，空格分割。用于生成词语到index的token词典，类似keras的Tokenizer。[查看代码]( https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/data_preprocess.py#L275-L288 )
 
 ### 2.2.2 生成文件及示例
 
@@ -133,11 +133,12 @@ title字段经过分词处理后得到title_split字段，其中，加粗字体�
 
 使用**gensim模块**，根据预训练的模型，结合“all_word_seg.txt”给出的分隔后的句子，fine tune为适合训练集和测试集的词向量模型。
 
-### 2.3.1 一个简单的例子
+### 2.3.1 word2vec使用预训练模型，一个简单的例子
 
 此节给出了一个简单的例子，model1对应于预训练模型，sentences对应与本地语料，wv_from_text就是最终模型。见[learn_word2vec_pre-train_vec.py](https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/learn_word2vec_pre-train_vec.py#L11-L37)
 
 ```python
+from gensim.models import word2vec, KeyedVectors
 #%% 1.case
 sentences = [['first', 'sentence'], ['second', 'sentence']]
 
@@ -160,7 +161,7 @@ wv_from_text.build_vocab([list(model1.wv.vocab.keys())], update=True)  # 加入�
 wv_from_text.intersect_word2vec_format("test.txt", binary=False, lockf=1.0)
 wv_from_text.train(sentences, total_examples=total_examples, epochs=wv_from_text.epochs)
 ```
-### 2.3.2 训练词向量——基于腾讯预训练词向量
+### 2.3.2 Word2vec训练词向量——基于腾讯预训练词向量
 
 腾讯预训练词向量下载地址: https://ai.tencent.com/ailab/nlp/embedding.html，<font color='red'>该词向量模型较为占用内存，建议在内存大于32G的电脑上采用，或者采用更小规模的预训练模型。</font>
 
@@ -177,9 +178,29 @@ if __name__ == '__main__':
     word2vec_with_pre_train(pre_trained_word2vec_bin_file, output_word2vec)
 ```
 
+### 2.3.3 Glove构造词向量
+
+代码：[glove2embeding_matrix.py ]( https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/glove2embeding_matrix.py )
+
+使用mittens包进行Glove的训练，训练过程如下步骤：
+
+1. 对句子进行tokenize；
+2. 构造共现矩阵；
+3. 训练glove词向量
+
+
+
 ## 2.4 生成Token字典，嵌入矩阵
 
-执行文件:[word_model2embeding_matrix.py](https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/word_model2embeding_matrix.py)
+相关文件:
+
+[word_model2embeding_matrix.py]( https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/word_model2embeding_matrix.py ) 生成word2vec词向量
+
+[glove2embeding_matrix.py ]( https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/glove2embeding_matrix.py )生成glove词向量
+
+[glove_word_vec2embeding_matrix.py ]( https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/glove_word_vec2embeding_matrix.py )生成glove和word2vec进行拼接的词向量
+
+[bert_method_char_preprocess.py ]( https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/bert_method_char_preprocess.py )为bert模型构造token后的文本，未生成embedding matrix
 
 ### 2.4.1 生成步骤
 
@@ -189,22 +210,15 @@ if __name__ == '__main__':
 
 3. **构造Token词典**，key为需要嵌入的词语，比如"白条"，value为对应的下标，该下标与嵌入矩阵的行对应，比如，{'白条':1}，意味着
 
-4. **保存数据**，嵌入矩阵保存为“word2idx_embedMatrix.pkl”，训练集数据保存为train_data_model.pkl，测试集数据保存为test_data_model.pkl。
+4. **保存数据**，保存嵌入矩阵，词和token的对应关系。
 
-### 2.4.2 切换使用的词向量模型
+### 2.4.2 输出文件说明
 
-修改[word_model2embeding_matrix.py](https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/word_model2embeding_matrix.py)中
+- word2idx_embedMatrix.pkl，word2idx_embedMatrix_hastitle.pkl 对应word2vec模型的embedding matrix
+- word2idx_embedMatrix_glove.pkl 对应glove模型的embedding matrix
+- word2idx_embedMatrix_glove_word2vec.pkl 对应glove和word2vec模型对应的embedding matrix
 
-```python
-#%% 1.生成嵌入矩阵,单词的字典
-model = KeyedVectors.load_word2vec_format('train_vec_byTencent_word.bin', binary=True)
-```
-
-### 2.4.3 输出文件说明
-
-<font color="red">考虑到文件大小限制</font>，大小大于50M的文件都经过压缩。
-
-- **word2idx_embedMatrix.pkl**
+**word2idx_embedMatrix.pkl 示例**
 
 由Token词典与嵌入矩阵构成的list。调用方式，嵌入矩阵和Token字典形式如下：
 
@@ -244,40 +258,39 @@ Token
 
   读入为字典，字典的key和value描述如下：
 
-  | key                   | value描述                                         |
-  | --------------------- | ------------------------------------------------- |
-  | X_train_txt           | txt字段对应的Token向量，每个位置为词对应的index   |
-  | X_train_txt_max_len   | txt字段的最大长度                                 |
-  | X_train_title         | title字段对应的Token向量，每个位置为词对应的index |
-  | X_train_title_max_len | title字段的最大长度                               |
-  | y_train               | 是否为负面消息，由0，1组成                        |
-
-  ```python
-  with open('train_data_model.pkl', 'rb') as f:
-  	train_data = pickle.load(f)
+  | key     | value描述                                                    |
+  | ------- | ------------------------------------------------------------ |
+  | entity  | 由np.array构成的list，array中的每个元素为对应的候选entity的token |
+  | title   | title字段对应的Token向量，每个位置为词对应的index            |
+  | txt     | txt字段对应的Token向量，每个位置为词对应的index              |
+  | y_train | 是否为负面消息，由0，1组成                                   |
   
-  train_data
-  Out[22]: 
-  {'X_train_title': array([[    0,  6582,     0, ...,     0,     0,     0],
-          [    0, 15397,     0, ...,     0,     0,     0],
-          [    0,     0,     0, ...,     0,     0,     0],
+```python
+  result = pd.read_pickle('train_data_model.pkl')
+  
+  result
+  Out[8]: 
+  {'entity': array([list([7802, 18026]), list([29159, 13157]),
+          list([32062, 0, 29159, 21610]), ..., list([33065, 0]),
+          list([29159, 21610]), list([20499])], dtype=object),
+   'title': array([[27856, 15102, 18026, ...,     0,     0,     0],
+          [29159,  9787, 28825, ...,     0,     0,     0],
+          [ 7778,  9430, 14550, ...,     0,     0,     0],
           ...,
           [    0,     0,     0, ...,     0,     0,     0],
-          [15397, 10379, 15397, ...,     0,     0,     0],
-          [    0, 22052,  7420, ...,     0,     0,     0]]),
-   'X_train_title_max_len': 31,
-   'X_train_txt': array([[23891, 16957, 31782, ...,     0,     0,     0],
-          [15397, 28548, 13659, ...,     0,     0,     0],
-          [17505, 29826, 10017, ...,     0,     0,     0],
+          [29159, 19470, 29159, ...,     0,     0,     0],
+          [20499,  6183,  6707, ...,     0,     0,     0]]),
+   'txt': array([[27856, 15102, 18026, ...,     0,     0,     0],
+          [29159,  9787, 28825, ...,     0,     0,     0],
+          [ 7778,  9430, 14550, ...,     0,     0,     0],
           ...,
-          [15938, 15800, 14781, ...,     0,     0,     0],
-          [15397, 10379, 15397, ...,     0,     0,     0],
-          [ 9327,  8915,   485, ...,     0,     0,     0]]),
-   'X_train_txt_max_len': 3154,
+          [21256,  6204, 25671, ...,     0,     0,     0],
+          [29159, 19470, 29159, ...,     0,     0,     0],
+          [28610,  7810, 34513, ...,     0,     0,     0]]),
    'y_train': array([0, 1, 1, ..., 1, 1, 0], dtype=int64)}
-  ```
+```
 
-  
+
 
 - **test_data_model.pkl**
 
@@ -287,59 +300,158 @@ Token
 
 ### 2.5.1 关于f1的实现
 
-由于Keras中没有f1，于是使用自定义的f1计算方式进行计算f1。[见代码](https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/model_from_kaggle.py#L19-L56)
+由于Keras中没有f1，于是使用自定义的f1计算方式进行计算f1。[见代码]( https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/my_utils.py #L10-L47)
 
-### 2.5.2 模型v1.0
+在model.compile(optimizer=adam, loss='binary_crossentropy', metrics=[f1])中调用。
 
-#### 模型结构图
+**相关文件**:
 
-input_1和input_2分别为title和txt。
+- model_bert_char.py: 基于bert的模型
+- model_glove.py: 基于glove的模型
+- model_glove_word2vec.py:基于word2vec和glove的模型
+- model_word2vec.py:基于word2vec的模型
 
-![模型结构图v1.0](./picture/网络结构图v1.0.png)
+### 2.5.2 词向量模型，模型结构
 
-#### 核心代码
+#### txt和title同时具有的网络模型
+
+- #### 模型结构图
+
+无论时glove，word2vec还是glvoe+word2vec使用的网络结构都一致，
+
+对于同时具有title和txt的文本使用如下模型判断input_1和input_2分别为title和txt。
+
+![模型结构图1.0](./picture/model_title.png)
+
+- #### 核心代码
+
 
 ```python
-def build_model_add_title2(embedding_matrix, learning_rate, nb_words,
-                          max_length=55, max_length_title=55,
-                          embedding_size=200, metric = f1):
+from keras.layers import Input, Embedding, SpatialDropout1D, Bidirectional, \
+                         GlobalMaxPooling1D, CuDNNLSTM, CuDNNGRU, Concatenate,\
+                         Dense, GlobalAveragePooling1D
+from keras.models import Model
+from keras import optimizers
+from keras import backend as K  #调用后端引擎，K相当于使用tensorflow（后端是tf的话）
+import pickle
+import numpy as np
+from keras.preprocessing.sequence import pad_sequences
+
+def build_model_title_txt(embedding_matrix, learning_rate, nb_words,
+                          max_length=55,max_length_txt = 100,
+                          embedding_size=300, metric = f1):
     '''
     根据预训练的嵌入矩阵，返回神经网络的模型，返回模型还需要调用model.fit模块
     Args:
         embedding_matrix:嵌入矩阵,每行为一个单词，每列为其中一个维度
-        learning_rate:学习率的大小
+        learning_rate:学习率
         nb_words:词汇表大小，设置为出现过的词汇数目+1，空的位置留给OOV(out of vocabulary),
-        max_length:txt中句子的最大长度
-        max_length_title:title中句子的最大长度
-        embedding_size:嵌入矩阵的嵌入维度，即嵌入矩阵embedding_matrix.shape[1]
-        metric:使用的评价方式
+        max_length:title的最大长度
+        max_length_txt:txt的最大长度
+        embedding_size:嵌入词向量的维度
+        metric:用于度量的函数
     '''
-    inp = Input(shape=(max_length,))  # 定义输入 txt
-    inp_title = Input(shape=(max_length_title,))  # 定义输入 title
+    inp = Input(shape=(max_length,))  # 定义输入
+    inp_txt = Input(shape=(max_length_txt,))  # 定义输入
+    # 嵌入层
+    embed = Embedding(nb_words, embedding_size, weights=[embedding_matrix], trainable=True)
+    # title
+    x = embed(inp)
+    x = SpatialDropout1D(0.3)(x)  # 对某一个维度进行dropout,embedding中的某一列
+    x1 = Bidirectional(CuDNNLSTM(128, return_sequences=True))(x)  # 使用GPU加速的LSTM
+    x2 = Bidirectional(CuDNNGRU(64, return_sequences=True))(x1)  # 使用GPU加速的GRU
+    max_pool1 = GlobalMaxPooling1D()(x1)  #对于时序数据的全局最大池化，
+    max_pool2 = GlobalMaxPooling1D()(x2)  #对于时序数据的全局最大池化。
+    avg_pool1 = GlobalAveragePooling1D()(x1)
+    avg_pool2 = GlobalAveragePooling1D()(x2)
     # txt
-    x = Embedding(nb_words, embedding_size, weights=[embedding_matrix], trainable=False)(inp)# 嵌入层
+    x_txt = embed(inp_txt)
+    x_txt = SpatialDropout1D(0.3)(x_txt)  # 对某一个维度进行dropout,embedding中的某一列
+    x1_txt = Bidirectional(CuDNNLSTM(128, return_sequences=True))(x_txt)  # 使用GPU加速的LSTM
+    x2_txt = Bidirectional(CuDNNGRU(64, return_sequences=True))(x1_txt)  # 使用GPU加速的GRU
+    max_pool1_txt = GlobalMaxPooling1D()(x1_txt)  #对于时序数据的全局最大池化，
+    max_pool2_txt = GlobalMaxPooling1D()(x2_txt)  #对于时序数据的全局最大池化。
+    avg_pool1_txt = GlobalAveragePooling1D()(x1_txt)
+    avg_pool2_txt = GlobalAveragePooling1D()(x2_txt)
+    
+    conc = Concatenate()([max_pool1, max_pool2,avg_pool1,avg_pool2,
+                          max_pool1_txt, max_pool2_txt, avg_pool1_txt, avg_pool2_txt,])  # 合并两层
+    
+    predictions = Dense(1, activation='sigmoid')(conc)
+
+    model = Model(inputs=[inp,inp_txt], outputs=predictions)
+    adam = optimizers.Adam(lr=learning_rate)
+    model.compile(optimizer=adam, loss='binary_crossentropy', metrics=[metric])
+    return model
+```
+
+####　只有txt的网络模型
+
+只具有txt的时候使用的模型。
+
+- #### 模型结构图
+
+![模型结构图2.0](./picture/model_txt_notitle.png)
+
+- #### 核心代码
+``` python
+from keras.layers import Input, Embedding, SpatialDropout1D, Bidirectional, \
+                         GlobalMaxPooling1D, CuDNNLSTM, CuDNNGRU, Concatenate,\
+                         Dense, GlobalAveragePooling1D
+from keras.models import Model
+from keras import optimizers
+from keras import backend as K  #调用后端引擎，K相当于使用tensorflow（后端是tf的话）
+import pickle
+import numpy as np
+from keras.preprocessing.sequence import pad_sequences`
+def build_model(embedding_matrix, learning_rate, nb_words,
+                max_length=55,embedding_size=300, metric = f1):
+    '''
+    根据预训练的嵌入矩阵，返回神经网络的模型，返回模型还需要调用model.fit模块
+    Args:
+        embedding_matrix:嵌入矩阵,每行为一个单词，每列为其中一个维度
+        learning_rate:学习率
+        nb_words:词汇表大小，设置为出现过的词汇数目+1，空的位置留给OOV(out of vocabulary),
+        max_length:title的最大长度
+        max_length_txt:txt的最大长度
+        embedding_size:嵌入词向量的维度
+        metric:用于度量的函数
+    '''
+    inp = Input(shape=(max_length,))  # 定义输入
+    # 嵌入层
+    x = Embedding(nb_words, embedding_size, weights=[embedding_matrix], trainable=True)(inp)
     x = SpatialDropout1D(0.3)(x)  # 对某一个维度进行dropout,embedding中的某一列
     x1 = Bidirectional(CuDNNLSTM(256, return_sequences=True))(x)  # 使用GPU加速的LSTM
     x2 = Bidirectional(CuDNNGRU(128, return_sequences=True))(x1)  # 使用GPU加速的GRU
     max_pool1 = GlobalMaxPooling1D()(x1)  #对于时序数据的全局最大池化，
     max_pool2 = GlobalMaxPooling1D()(x2)  #对于时序数据的全局最大池化。
-    conc = Concatenate()([max_pool1, max_pool2])  # 合并两层
-    
-    # title
-    x_title = Embedding(nb_words, embedding_size, weights=[embedding_matrix], trainable=False)(inp_title)# 嵌入层
-    x_title = SpatialDropout1D(0.3)(x_title)  # 对某一个维度进行dropout,embedding中的某一列
-    x1_title = Bidirectional(CuDNNLSTM(256, return_sequences=True))(x_title)  # 使用GPU加速的LSTM
-    x2_title = Bidirectional(CuDNNGRU(128, return_sequences=True))(x1_title)  # 使用GPU加速的GRU
-    max_pool1_title = GlobalMaxPooling1D()(x1_title)  #对于时序数据的全局最大池化，
-    max_pool2_title = GlobalMaxPooling1D()(x2_title)  #对于时序数据的全局最大池化。
-    conc_title = Concatenate()([max_pool1_title, max_pool2_title])  # 合并两层
-    
-    conc_all = Concatenate()([conc, conc_title])
-    
-    predictions = Dense(1, activation='sigmoid')(conc_all)
-    model = Model(inputs=[inp, inp_title], outputs=predictions)
+    avg_pool1 = GlobalAveragePooling1D()(x1)
+    avg_pool2 = GlobalAveragePooling1D()(x2)
+    conc = Concatenate()([max_pool1, max_pool2,avg_pool1,avg_pool2])  # 合并两层
+    predictions = Dense(1, activation='sigmoid')(conc)
+    model = Model(inputs=inp, outputs=predictions)
     adam = optimizers.Adam(lr=learning_rate)
-    model.compile(optimizer=adam, loss='binary_crossentropy', metrics=[f1])
+    model.compile(optimizer=adam, loss='binary_crossentropy', metrics=[metric])
     return model
 ```
+#### Bert模型
+bert模型和上述模型类似，不过在训练的过程中训练bert预训练部分的最后40层的参数，实际测试的效果，对于识别负面消息的作用，bert的表现和上述模型的表现没有太大的区别。
+
+## 2.6 模型的聚合和效果简介
+### 2.6.1 模型效果
+上述四种模型，保留20%的样本作为验针集（hold-out），验证集的f1均能够达到0.96。
+实际发现，有时候，将模型的参数（比如LSTM层参数）下调，模型的拟合效果反而好。
+另一方面，bert训练层数的增加能够改善模型的稳健性。
+### 2.6.2 模型聚合
+模型聚合步骤如下：
+1. 模型预测的结果作为特征，通过逻辑回归进行聚合，预测的y值为训练集的实际标签；
+2. 召回策略，对于置信度较低（逻辑回归输出）的部分，比如选取[0.1,0.9]区间，若该区间内，存在单个模型预测的置信度(即神经网络的输出)大于0.9或者小于0.1，则直接将该预测值作为最终预测值。
+
+# 3 关于step2中负面消息归属部分
+
+对于如何判断文本中的负面消息属于哪一个实体，曾经尝试过**Bert+CRF**的模式，可惜效果并不理想。
+
+**目前做法**：对于step1中判断为负面消息的文本，调用fuzzywuzzy包，判断候选实体是否包含在文本中，若该实体也在训练集的负面实体中出现，则认为该实体为负面实体。（此做法较为粗糙，需要改进）
+
+**模型最终得分：**A榜 0.91877663  B榜： 0.90992451 
 
