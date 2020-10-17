@@ -163,7 +163,7 @@ wv_from_text.train(sentences, total_examples=total_examples, epochs=wv_from_text
 ```
 ### 2.3.2 Word2vec训练词向量——基于腾讯预训练词向量
 
-腾讯预训练词向量下载地址: https://ai.tencent.com/ailab/nlp/en/index.html，<font color='red'>该词向量模型较为占用内存，建议在内存大于32G的电脑上采用，或者采用更小规模的预训练模型。</font>
+腾讯预训练词向量下载地址: https://ai.tencent.com/ailab/nlp/en/index.html<font color='red'>该词向量模型较为占用内存，建议在内存大于32G的电脑上采用，或者采用更小规模的预训练模型。</font>
 
 运行文件[learn_word2vec_pre-train_vec.py](https://github.com/cjn-chen/detect_negative_financial_sentences/blob/master/learn_word2vec_pre-train_vec.py) 其中word2vec_with_pre_train函数使用了前文提及的all_word_seg.txt文件，fine tune了词向量模型。
 
